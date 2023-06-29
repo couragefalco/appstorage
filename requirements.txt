@@ -1,3 +1,6 @@
 streamlit
 azure-storage-blob==12.9.0
 trimesh
+numpy
+pyarrow
+cryptography
