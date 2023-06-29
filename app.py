@@ -10,7 +10,7 @@ def save_uploadedfile(uploadedfile):
 def upload_file_to_blob(blob_service_client, file_path, file_name, container_name):
     blob_client = blob_service_client.get_blob_client(container_name, file_name)
     with open(file_path, "rb") as data:
-        blob_client.upload_blob(data)
+        blob_client.upload_blob(data, overwrite=True)
     return st.success("Uploaded File:{} to Blob Storage".format(file_name))
 
 def main():

@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 8501
 
-CMD streamlit run --server.port 8501 --logger.level=debug false app.py
+CMD streamlit run --server.port 8501 --logger.level=debug app.py
