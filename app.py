@@ -28,14 +28,15 @@ def preprocess_file(file_path):
 def compare_files(volume, cog, num_faces, num_vertices, num_edges):
     database = pd.read_csv('database.csv')
     database.columns = database.columns.str.strip()
-    min_distance = float("inf")
-    best_match = None
+    top_matches = [(float("inf"), None), (float("inf"), None), (float("inf"), None)]
     for index, row in database.iterrows():
         distance = math.sqrt((row['volume'] - volume)**2 + (row['num_faces'] - num_faces)**2 + (row['num_vertices'] - num_vertices)**2 + (row['num_edges'] - num_edges)**2)
-        if distance < min_distance:
-            min_distance = distance
-            best_match = row
-    return best_match
+        for i in range(3):
+            if distance < top_matches[i][0]:
+                top_matches.insert(i, (distance, row))
+                top_matches.pop()
+                break
+    return top_matches
 
 def main():
     st.title('CAD Matching API')
@@ -57,8 +58,8 @@ def main():
         save_uploadedfile(uploaded_file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{uploaded_file.name}')
         st.write(f'Volume: {volume}, Center of Gravity: {cog}, Number of Faces: {num_faces}, Number of Vertices: {num_vertices}, Number of Edges: {num_edges}') 
-        best_match = compare_files(volume, cog, num_faces, num_vertices, num_edges)
-        st.write(f'Best Match: {best_match["filename"]}') 
+        top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
+        st.write(f'Best Matches: {top_matches[0][1]["filename"]}, {top_matches[1][1]["filename"]}, {top_matches[2][1]["filename"]}') 
         blob_service_client = BlobServiceClient.from_connection_string("DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net")
         upload_file_to_blob(blob_service_client, f'tempDir/{uploaded_file.name}', uploaded_file.name, 'blobcontainer')
 
