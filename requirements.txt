@@ -1,6 +1,7 @@
 streamlit
-azure-storage-blob==12.9.0
+azure-storage-blob
 trimesh
-numpy
-pyarrow
-cryptography
+matplotlib
+numpy-stl
+ipyvolume
+ipython_genutils
