@@ -74,7 +74,11 @@ def update_db():
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(os.path.join("tempDir", filename))
         data = {'filename': filename, 'volume': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
         df = pd.DataFrame(data, index=[0])
-        df.to_csv('database.csv', mode='a', header=False, index=False)
+        # check if the file exists, if not write header
+        if not os.path.isfile('database.csv'):
+            df.to_csv('database.csv', mode='a', header=True, index=False)
+        else: # else it exists so append without writing the header
+            df.to_csv('database.csv', mode='a', header=False, index=False)
     for filename in os.listdir("tempDir"):
         os.remove(os.path.join("tempDir", filename))
 
