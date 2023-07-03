@@ -7,7 +7,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from PIL import Image
 import streamlit as st
 from azure.storage.blob import BlobServiceClient
+from apscheduler.schedulers.background import BackgroundScheduler
 
+CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net"
 
 def save_uploadedfile(uploadedfile):
     with open(os.path.join("tempDir", uploadedfile.name), "wb") as f:
@@ -54,22 +56,49 @@ def render_2d_projection(file_path, file_name):
     image = Image.open('temp.png')
     st.image(image, caption=f'2D Projection of {file_name}', use_column_width=True)
 
+def download_blobs(blob_service_client, container_name, dest_folder):
+    blob_container_client = blob_service_client.get_container_client(container_name)
+    blobs_list = blob_container_client.list_blobs()
+    for blob in blobs_list:
+        blob_client = blob_service_client.get_blob_client(container_name, blob.name)
+        with open(os.path.join(dest_folder, blob.name), "wb") as my_blob:
+            download_stream = blob_client.download_blob()
+            my_blob.write(download_stream.readall())
+
+def update_db():
+    blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
+    download_blobs(blob_service_client, "blobcontainer", "tempDir")
+    if os.path.exists("database.csv"):
+        os.remove("database.csv")
+    for filename in os.listdir("tempDir"):
+        volume, cog, num_faces, num_vertices, num_edges = preprocess_file(os.path.join("tempDir", filename))
+        data = {'filename': filename, 'volume': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
+        df = pd.DataFrame(data, index=[0])
+        df.to_csv('database.csv', mode='a', header=False, index=False)
+    for filename in os.listdir("tempDir"):
+        os.remove(os.path.join("tempDir", filename))
+
+sched = BackgroundScheduler()
+sched.add_job(update_db, 'interval', hours=3)
+sched.start()
 
 def main():
     st.title('CAD Matching API')
-    st.header('Upload CAD File to Database')
-    database_file = st.file_uploader("Choose a file to add to database", type=['stl'])
+    database_file = st.file_uploader("Choose a file to add to database", type=['stl'], key='database_uploader')
+    
+    if st.button('Sync Database'):
+        update_db()
+        st.success('Database Synced')
+
     if database_file is not None:
         save_uploadedfile(database_file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{database_file.name}')
-        blob_service_client = BlobServiceClient.from_connection_string("DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net")
+        blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
         upload_file_to_blob(blob_service_client, f'tempDir/{database_file.name}', database_file.name, 'blobcontainer')
         data = {'filename': database_file.name, 'volume:': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
         df = pd.DataFrame(data, index=[0])
         df.to_csv('database.csv', mode='a', header=False, index=False)
-        
-    st.header('Upload CAD File for Comparison')
-    uploaded_file = st.file_uploader("Choose a file for comparison", type=['stl'])
+    uploaded_file = st.file_uploader("Choose a file for comparison", type=['stl'], key='comparison_uploader')
     if uploaded_file is not None:
         save_uploadedfile(uploaded_file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{uploaded_file.name}')
@@ -77,9 +106,7 @@ def main():
         st.write(f'Best Matches: {top_matches[0][1]["filename"]}, {top_matches[1][1]["filename"]}, {top_matches[2][1]["filename"]}') 
         for match in top_matches:
             render_2d_projection(f'tempDir/{match[1]["filename"]}', match[1]["filename"])
-                
         render_2d_projection(f'tempDir/{uploaded_file.name}', uploaded_file.name)
-        
-        
+
 if __name__ == '__main__':
     main()
