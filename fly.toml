@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for testingcourage on 2023-06-30T23:55:30+02:00
+# fly.toml app configuration file generated for couragesync on 2023-07-04T01:17:25+02:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "testingcourage"
+app = "couragesync"
 primary_region = "fra"
 
 [http_service]
