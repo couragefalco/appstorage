@@ -34,15 +34,16 @@ def preprocess_file(file_path):
 def compare_files(volume, cog, num_faces, num_vertices, num_edges):
     database = pd.read_csv('database.csv')
     database.columns = database.columns.str.strip()
-    top_matches = [(float("inf"), None), (float("inf"), None), (float("inf"), None)]
+    top_matches = [(float("inf"), None, 0), (float("inf"), None, 0), (float("inf"), None, 0)]
     for index, row in database.iterrows():
         distance = math.sqrt((row['volume'] - volume)**2 + 
                            (row['num_faces'] - num_faces)**2 + 
                            (row['num_vertices'] - num_vertices)**2 + 
                            (row['num_edges'] - num_edges)**2)
+        similarity_score = 1 / (1 + distance)
         for i in range(3):
             if distance < top_matches[i][0]:
-                top_matches.insert(i, (distance, row))
+                top_matches.insert(i, (distance, row, similarity_score))
                 top_matches.pop()
                 break
     return top_matches
@@ -88,7 +89,7 @@ sched.start()
 
 def main():
     st.title('CAD Matching API')
-    database_file = st.file_uploader("Choose a file to add to database", type=['stl'], key='database_uploader')
+    database_file = st.file_uploader("Choose a file to add to database", type=['stl', 'step'], key='database_uploader')
     
     if st.button('Sync Database'):
         update_db()
@@ -102,12 +103,13 @@ def main():
         data = {'filename': database_file.name, 'volume:': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
         df = pd.DataFrame(data, index=[0])
         df.to_csv('database.csv', mode='a', header=False, index=False)
-    uploaded_file = st.file_uploader("Choose a file for comparison", type=['stl'], key='comparison_uploader')
+    uploaded_file = st.file_uploader("Choose a file for comparison", type=['stl', 'step'], key='comparison_uploader')
     if uploaded_file is not None:
         save_uploadedfile(uploaded_file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{uploaded_file.name}')
         top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
         st.write(f'Best Matches: {top_matches[0][1]["filename"]}, {top_matches[1][1]["filename"]}, {top_matches[2][1]["filename"]}') 
+        st.write(f'Similarity Scores: {top_matches[0][2]}, {top_matches[1][2]}, {top_matches[2][2]}')
         for match in top_matches:
             render_2d_projection(f'tempDir/{match[1]["filename"]}', match[1]["filename"])
         render_2d_projection(f'tempDir/{uploaded_file.name}', uploaded_file.name)
