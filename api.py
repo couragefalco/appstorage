@@ -39,7 +39,7 @@ async def match_file(file: UploadFile = File(...)):
         save_uploadedfile(file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{file.filename}')
         top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
-        matches = [match[1]["filename"] for match in top_matches]
+        matches = [{"filename": match[1]["filename"], "score": match[0]} for match in top_matches]
         response = {
             "filename": file.filename,
             "top_matches": matches

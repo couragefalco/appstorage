@@ -12,15 +12,20 @@ from apscheduler.schedulers.background import BackgroundScheduler
 CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net"
 
 def save_uploadedfile(uploadedfile):
-    with open(os.path.join("tempDir", uploadedfile.filename), "wb") as f:
-        f.write(uploadedfile.file.read())
-    return st.success(f"Saved File:{uploadedfile.filename} to tempDir")
+    with open(os.path.join("tempDir", uploadedfile.name), "wb") as f:
+        f.write(uploadedfile.getbuffer())
+    return st.success(f"Saved File:{uploadedfile.name} to tempDir")
 
 def upload_file_to_blob(blob_service_client, file_path, file_name, container_name):
     blob_client = blob_service_client.get_blob_client(container_name, file_name)
     with open(file_path, "rb") as data:
         blob_client.upload_blob(data, overwrite=True)
     return st.success(f"Uploaded File:{file_name} to Blob Storage")
+
+def save_uploadedfile_streamlit(uploadedfile):
+    with open(os.path.join("tempDir", uploadedfile.name), "wb") as f:
+        f.write(uploadedfile.getbuffer())
+    return st.success(f"Saved File:{uploadedfile.name} to tempDir")
 
 def preprocess_file(file_path):
     mesh = trimesh.load(file_path)
@@ -34,18 +39,26 @@ def preprocess_file(file_path):
 def compare_files(volume, cog, num_faces, num_vertices, num_edges):
     database = pd.read_csv('database.csv')
     database.columns = database.columns.str.strip()
-    top_matches = [(float("inf"), None, 0), (float("inf"), None, 0), (float("inf"), None, 0)]
+    top_matches = [[float("inf"), None, 0]] * 10  # Added third element for similarity score
+    max_sim_score = 0 # keep track of the maximum similarity score
     for index, row in database.iterrows():
-        distance = math.sqrt((row['volume'] - volume)**2 + 
-                           (row['num_faces'] - num_faces)**2 + 
-                           (row['num_vertices'] - num_vertices)**2 + 
-                           (row['num_edges'] - num_edges)**2)
-        similarity_score = 1 / (1 + distance)
-        for i in range(3):
+        distance = ((row['volume'] - volume)**2 + 
+                   (row['num_faces'] - num_faces)**2 + 
+                   (row['num_vertices'] - num_vertices)**2 + 
+                   (row['num_edges'] - num_edges)**2)**0.5
+        if distance == 0: # identical files
+            similarity_score = 1 
+        else:
+            similarity_score = 1 / distance  # compute the similarity based on Euclidean distance
+        max_sim_score = max(similarity_score, max_sim_score) # update the maximum similarity score if needed
+        for i in range(10):
             if distance < top_matches[i][0]:
-                top_matches.insert(i, (distance, row, similarity_score))
+                # Insert distance, matched row, and similarity score
+                top_matches.insert(i, [distance, row, similarity_score])
                 top_matches.pop()
                 break
+    for match in top_matches:
+        match[2] = match[2] / max_sim_score  # normalizing the similarity scores 
     return top_matches
 
 def render_2d_projection(file_path, file_name):
@@ -94,7 +107,7 @@ def main():
     if st.button('Sync Database'):
         update_db()
         st.success('Database Synced')
-
+        
     if database_file is not None:
         save_uploadedfile(database_file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{database_file.name}')
@@ -103,16 +116,20 @@ def main():
         data = {'filename': database_file.name, 'volume:': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
         df = pd.DataFrame(data, index=[0])
         df.to_csv('database.csv', mode='a', header=False, index=False)
+        
     uploaded_file = st.file_uploader("Choose a file for comparison", type=['stl', 'step'], key='comparison_uploader')
+    
     if uploaded_file is not None:
         save_uploadedfile(uploaded_file)
         volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{uploaded_file.name}')
         top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
         st.write(f'Best Matches: {top_matches[0][1]["filename"]}, {top_matches[1][1]["filename"]}, {top_matches[2][1]["filename"]}') 
         st.write(f'Similarity Scores: {top_matches[0][2]}, {top_matches[1][2]}, {top_matches[2][2]}')
-        for match in top_matches:
+        for match in top_matches[:3]:
             render_2d_projection(f'tempDir/{match[1]["filename"]}', match[1]["filename"])
         render_2d_projection(f'tempDir/{uploaded_file.name}', uploaded_file.name)
 
 if __name__ == '__main__':
     main()
+
+    
