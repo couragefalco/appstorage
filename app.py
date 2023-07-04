@@ -22,10 +22,10 @@ def upload_file_to_blob(blob_service_client, file_path, file_name, container_nam
         blob_client.upload_blob(data, overwrite=True)
     return st.success(f"Uploaded File:{file_name} to Blob Storage")
 
-def save_uploadedfile_streamlit(uploadedfile):
-    with open(os.path.join("tempDir", uploadedfile.name), "wb") as f:
-        f.write(uploadedfile.getbuffer())
-    return st.success(f"Saved File:{uploadedfile.name} to tempDir")
+def save_uploadedfile_api(uploadedfile):
+    with open(os.path.join("tempDir", uploadedfile.filename), "wb") as f:
+        f.write(uploadedfile.file.read())
+    return st.success(f"Saved File:{uploadedfile.filename} to tempDir")
 
 def preprocess_file(file_path):
     mesh = trimesh.load(file_path)
@@ -103,19 +103,26 @@ sched.start()
 def main():
     st.title('CAD Matching API')
     database_file = st.file_uploader("Choose a file to add to database", type=['stl', 'step'], key='database_uploader')
-    
+
     if st.button('Sync Database'):
         update_db()
         st.success('Database Synced')
         
     if database_file is not None:
         save_uploadedfile(database_file)
-        volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{database_file.name}')
-        blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
-        upload_file_to_blob(blob_service_client, f'tempDir/{database_file.name}', database_file.name, 'blobcontainer')
-        data = {'filename': database_file.name, 'volume:': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
-        df = pd.DataFrame(data, index=[0])
-        df.to_csv('database.csv', mode='a', header=False, index=False)
+        volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{database_file.name}')        
+        # load or initialize data
+        if not os.path.isfile('database.csv'):
+            data = pd.DataFrame()
+        else:
+            data = pd.read_csv('database.csv')
+        # check if file name exists and only write new record
+        if database_file.name not in data['filename'].values:
+            blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
+            upload_file_to_blob(blob_service_client, f'tempDir/{database_file.name}', database_file.name, 'blobcontainer')
+            new_data = {'filename': database_file.name, 'volume:': volume, 'cog_x': cog[0], 'cog_y': cog[1], 'cog_z': cog[2], 'num_faces': num_faces, 'num_vertices': num_vertices, 'num_edges': num_edges}
+            df = pd.DataFrame(new_data, index=[0])
+            df.to_csv('database.csv', mode='a', header=False, index=False)
         
     uploaded_file = st.file_uploader("Choose a file for comparison", type=['stl', 'step'], key='comparison_uploader')
     
