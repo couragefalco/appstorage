@@ -9,3 +9,6 @@ cryptography
 ipyvolume
 ipython_genutils
 apscheduler
+fastapi
+uvicorn
+python-multipart

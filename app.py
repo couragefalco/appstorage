@@ -12,9 +12,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net"
 
 def save_uploadedfile(uploadedfile):
-    with open(os.path.join("tempDir", uploadedfile.name), "wb") as f:
-        f.write(uploadedfile.getbuffer())
-    return st.success(f"Saved File:{uploadedfile.name} to tempDir")
+    with open(os.path.join("tempDir", uploadedfile.filename), "wb") as f:
+        f.write(uploadedfile.file.read())
+    return st.success(f"Saved File:{uploadedfile.filename} to tempDir")
 
 def upload_file_to_blob(blob_service_client, file_path, file_name, container_name):
     blob_client = blob_service_client.get_blob_client(container_name, file_name)
