@@ -12,3 +12,5 @@ apscheduler
 fastapi
 uvicorn
 python-multipart
+shutil
+python-dotenv

@@ -3,9 +3,14 @@ import pandas as pd
 from starlette.responses import JSONResponse
 from app import preprocess_file, compare_files, render_2d_projection, save_uploadedfile_api, upload_file_to_blob
 from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+import os
 
 app = FastAPI()
-CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net"
+
+load_dotenv()
+
+CONNECTION_STRING = os.getenv("CONNECTION_STRING")
 
 @app.post("/files/")
 async def create_file(file: UploadFile = File(...)):
