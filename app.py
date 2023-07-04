@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from PIL import Image
 import streamlit as st
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, BlobClient
 from apscheduler.schedulers.background import BackgroundScheduler
 
 CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net"
@@ -96,6 +96,30 @@ def update_db():
     for filename in os.listdir("tempDir"):
         os.remove(os.path.join("tempDir", filename))
 
+def download_blob(blob_service_client, container_name, blob_name, dest_folder):
+    blob_client = blob_service_client.get_blob_client(container_name, blob_name)
+
+    # List all blobs in the container to ensure that blob_name exists
+    blob_container_client = blob_service_client.get_container_client(container_name)
+    blobs_list = blob_container_client.list_blobs()
+    for blob in blobs_list:
+        print(blob.name)
+    
+    with open(os.path.join(dest_folder, blob_name), "wb") as my_blob:
+        download_stream = blob_client.download_blob()
+        my_blob.write(download_stream.readall())
+
+def clear_directory(directory):
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
+
 sched = BackgroundScheduler()
 sched.add_job(update_db, 'interval', hours=3)
 sched.start()
@@ -132,11 +156,20 @@ def main():
         top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
         st.write(f'Best Matches: {top_matches[0][1]["filename"]}, {top_matches[1][1]["filename"]}, {top_matches[2][1]["filename"]}') 
         st.write(f'Similarity Scores: {top_matches[0][2]}, {top_matches[1][2]}, {top_matches[2][2]}')
+        # Preprocess and comparison code
+        blob_service_client = BlobServiceClient.from_connection_string(CONNECTION_STRING)
         for match in top_matches[:3]:
-            render_2d_projection(f'tempDir/{match[1]["filename"]}', match[1]["filename"])
+            # print out the blob names
+            container_client = blob_service_client.get_container_client('blobcontainer')
+            blobs_list = container_client.list_blobs()
+            for blob in blobs_list:
+                print(blob.name)
+            # Download the matched file from blob storage
+            download_blob(blob_service_client, 'blobcontainer', match[1]["filename"], 'tempdownload')
+            render_2d_projection(f'tempdownload/{match[1]["filename"]}', match[1]["filename"])
         render_2d_projection(f'tempDir/{uploaded_file.name}', uploaded_file.name)
+        # clear the tempdownload directory
+        clear_directory('tempdownload')
 
 if __name__ == '__main__':
     main()
-
-    
