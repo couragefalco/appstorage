@@ -1,0 +1,4 @@
+# Instructions
+Run Files
+1. API Run : uvicorn api:app
+2. streamlit run app

@@ -1,12 +1,10 @@
 import os
 import pandas as pd
 import trimesh
-import math
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from PIL import Image
 import streamlit as st
-from azure.storage.blob import BlobServiceClient, BlobClient
+from azure.storage.blob import BlobServiceClient
 from apscheduler.schedulers.background import BackgroundScheduler
 import shutil
 
