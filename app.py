@@ -6,7 +6,7 @@ from PIL import Image
 import streamlit as st
 from azure.storage.blob import BlobServiceClient
 from apscheduler.schedulers.background import BackgroundScheduler
-import shutil
+import shutil 
 
 CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=blobconfigurator;AccountKey=j9kYa3w9z11ukkynzpJuhgPheGbgEJGPve9sNAfHG9ErsKUpZCtnqC+hnNRURqudc3UhACwOSZ3g+AStdKhYpg==;EndpointSuffix=core.windows.net"
 
