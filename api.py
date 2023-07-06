@@ -1,12 +1,12 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 import pandas as pd
 from starlette.responses import JSONResponse
-from app import preprocess_file, compare_files, render_2d_projection, save_uploadedfile_api, upload_file_to_blob
+from app import preprocess_file, compare_files, save_uploadedfile_api, upload_file_to_blob
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 import os
 
-app = FastAPI()
+app = FastAPI(docs_url="/docs")
 
 load_dotenv()
 

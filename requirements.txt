@@ -3,14 +3,12 @@ azure-storage-blob
 trimesh
 matplotlib
 numpy-stl
-numpy
-pyarrow
 cryptography
 ipyvolume
+pyarrow
 ipython_genutils
 apscheduler
 fastapi
 uvicorn
-python-multipart
-shutil
 python-dotenv
+python-multipart
