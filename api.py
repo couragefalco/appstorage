@@ -1,7 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 import pandas as pd
 from starlette.responses import JSONResponse
-from app import preprocess_file, compare_files, save_uploadedfile_api, upload_file_to_blob
+from app import preprocess_file, compare_files, save_uploadedfile_api, upload_file_to_blob, update_db, clear_directory
+import os
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 import os
@@ -26,6 +27,14 @@ async def create_file(file: UploadFile = File(...)):
         return JSONResponse(status_code=200, content=response)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/sync")
+async def sync_database():
+    try:
+        update_db()
+        return {"status": "success", "message": "Database synced successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/match/")
 async def match_file(file: UploadFile = File(...)):
@@ -35,6 +44,8 @@ async def match_file(file: UploadFile = File(...)):
         top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
         matches = [{"filename": match[1]["filename"], "similarity_score": match[2]} for match in top_matches]
         response = {"filename": file.filename, "top_matches": matches}
+        # Clear the tempDir after processing the file
+        clear_directory("tempDir")
         return JSONResponse(status_code=200, content=response)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
