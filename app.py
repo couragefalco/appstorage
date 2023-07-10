@@ -43,25 +43,21 @@ def compare_files(volume, cog, num_faces, num_vertices, num_edges):
     database = pd.read_csv('database.csv')
     database.columns = database.columns.str.strip()
     top_matches = [[float("inf"), None, 0]] * 10  # Added third element for similarity score
-    max_sim_score = 0 # keep track of the maximum similarity score
+    max_distance = 0 # keep track of the maximum Euclidean distance
     for index, row in database.iterrows():
         distance = ((row['volume'] - volume)**2 + 
                    (row['num_faces'] - num_faces)**2 + 
                    (row['num_vertices'] - num_vertices)**2 + 
                    (row['num_edges'] - num_edges)**2)**0.5
-        if distance == 0: # identical files
-            similarity_score = 1 
-        else:
-            similarity_score = 1 / distance  # compute the similarity based on Euclidean distance
-        max_sim_score = max(similarity_score, max_sim_score) # update the maximum similarity score if needed
+        max_distance = max(distance, max_distance) # update the maximum distance if needed
         for i in range(10):
             if distance < top_matches[i][0]:
-                # Insert distance, matched row, and similarity score
-                top_matches.insert(i, [distance, row, similarity_score])
+                # Insert distance, matched row, and placeholder for similarity score
+                top_matches.insert(i, [distance, row, 0])
                 top_matches.pop()
                 break
     for match in top_matches:
-        match[2] = match[2] / max_sim_score  # normalizing the similarity scores 
+        match[2] = 1 - match[0] / max_distance  # calculate normalized similarity score 
     return top_matches
 
 def render_2d_projection(file_path, file_name):
