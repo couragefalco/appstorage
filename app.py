@@ -35,6 +35,7 @@ def preprocess_file(file_path):
     mesh = trimesh.load(file_path)
     point_cloud = mesh.sample(1000) # sample 1000 points from the mesh
     return point_cloud
+    print(preprocess_file(f'tempDir/{file.filename}'))
 
 def compare_files(uploaded_point_cloud):
     database = pd.read_csv('database.csv')
@@ -135,6 +136,7 @@ def main():
     if uploaded_file is not None:
         save_uploadedfile(uploaded_file)
         uploaded_point_cloud = preprocess_file(f'tempDir/{uploaded_file.name}')
+        print(preprocess_file(f'tempDir/{file.filename}'))
         top_matches = compare_files(uploaded_point_cloud)
         print(top_matches[0])
         print(top_matches[0][1])

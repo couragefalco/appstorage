@@ -40,8 +40,10 @@ async def sync_database():
 async def match_file(file: UploadFile = File(...)):
     try:
         save_uploadedfile_api(file)
-        volume, cog, num_faces, num_vertices, num_edges = preprocess_file(f'tempDir/{file.filename}')
-        top_matches = compare_files(volume, cog, num_faces, num_vertices, num_edges)
+        # Add the print statement here
+        print(preprocess_file(f'tempDir/{file.filename}'))
+        point_cloud_data = preprocess_file(f'tempDir/{file.filename}')
+        top_matches = compare_files(point_cloud_data)
         matches = [{"filename": match[1]["filename"], "similarity_score": match[2]} for match in top_matches]
         response = {"filename": file.filename, "top_matches": matches}
         # Clear the tempDir after processing the file
@@ -49,3 +51,5 @@ async def match_file(file: UploadFile = File(...)):
         return JSONResponse(status_code=200, content=response)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
