@@ -97,8 +97,6 @@ def download_blob(blob_service_client, container_name, blob_name, dest_folder):
     # List all blobs in the container to ensure that blob_name exists
     blob_container_client = blob_service_client.get_container_client(container_name)
     blobs_list = blob_container_client.list_blobs()
-    for blob in blobs_list:
-        print(blob.name)
     
     with open(os.path.join(dest_folder, blob_name), "wb") as my_blob:
         download_stream = blob_client.download_blob()
@@ -148,8 +146,6 @@ def main():
             # print out the blob names
             container_client = blob_service_client.get_container_client('blobcontainer')
             blobs_list = container_client.list_blobs()
-            for blob in blobs_list:
-                print(blob.name)
             # Download the matched file from blob storage
             download_blob(blob_service_client, 'blobcontainer', str(match[1]["filename"]), 'tempdownload')
             render_2d_projection(f'tempdownload/{match[1]["filename"]}', match[1]["filename"])

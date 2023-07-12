@@ -1,27 +1,29 @@
-# fly.toml app configuration file generated for apiclass on 2023-07-05T18:42:54+02:00
+# fly.toml app configuration file generated for pointcloudfront on 2023-07-12T16:02:58+02:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "cadconvert"
+app = "pointcloudfront"
 primary_region = "fra"
-
 kill_signal = "SIGINT"
-kill_timeout = 5
+kill_timeout = "5s"
 
 [[services]]
-  internal_port = 8080
   protocol = "tcp"
+  internal_port = 8501
 
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
   [services.concurrency]
     hard_limit = 25
     soft_limit = 20
-  [[services.ports]]
-    handlers = ["http"]
-    port = "80"
-  [[services.ports]]
-    handlers = ["tls", "http"]
-    port = "443"
+
   [[services.tcp_checks]]
-    interval = 10000
-    timeout = 2000
+    interval = "10s"
+    timeout = "2s"
+    restart_limit = 0

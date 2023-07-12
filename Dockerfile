@@ -16,6 +16,7 @@ RUN pip install -r requirements.txt
 
 # Expose port
 EXPOSE 8080
+EXPOSE 8501
 
 # Entrypoint command for api.py server
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD streamlit run --server.port 8501 --logger.level=debug app.py
